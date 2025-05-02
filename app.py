@@ -1,4 +1,3 @@
-# app.py - Flask Backend for Project Roast
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -18,7 +17,7 @@ GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "your_github_token")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "your_gemini_api_key")
 
 # Initialize Gemini client
-GEMINI_API_KEY = "AIzaSyByrTJm40WL49x37qhIPG7Z_4tZrh9-bSw"
+genai.configure(api_key=GEMINI_API_KEY)
 
 # Headers for GitHub API
 headers = {
@@ -328,11 +327,11 @@ def analyze_project(file_structure, code_samples, repo_info):
     
     # Determine project complexity
     if analysis["file_count"] < 10:
-        analysis["complexity"] = "bahut simple aur bekaar" # Very simple and useless
+        analysis["complexity"] = "bahut simple aur bekaar"
     elif analysis["file_count"] < 30:
-        analysis["complexity"] = "thoda sa complex lekin fir bhi bakwaas" # A bit complex but still nonsense
+        analysis["complexity"] = "thoda sa complex lekin fir bhi bakwaas"
     else:
-        analysis["complexity"] = "complex lekin bekar implementation ke saath" # Complex but with terrible implementation
+        analysis["complexity"] = "complex lekin bekar implementation ke saath"
     
     # Estimate likelihood of code copying based on patterns
     if any("COPYRIGHT" in f for f in file_structure) or any("LICENSE" in f for f in file_structure):
@@ -342,7 +341,7 @@ def analyze_project(file_structure, code_samples, repo_info):
 
 
 def generate_roast_from_gemini(analysis):
-    """Generate an extreme roast in Hinglish using Gemini API"""
+    """Generate an extreme roast in Hindi using Gemini API"""
     try:
         # Extract key information for the prompt
         languages = [f"{name} ({count} files)" for name, count in analysis.get("languages", [])]
@@ -359,38 +358,72 @@ def generate_roast_from_gemini(analysis):
                 issue_list.append(f"{issue_type} ({count})")
             code_issues.append(f"{file_name}: {', '.join(issue_list)}")
         
-        # Create a detailed prompt for Gemini - now in Hinglish with focus on project features
+        # Create a detailed prompt for Gemini
         prompt = f"""
-        Main ek GitHub project ke liye Hinglish me ek short, powerful aur mazedaar roast generate karna chahta hoon. Project ka concept aur features pe focus karna hai, na ki sirf code syntax pe.
+        मैं एक गिटहब प्रोजेक्ट के लिए हिंदी में एक बहुत ही कठोर और अपमानजनक रोस्ट जेनरेट करना चाहता हूँ। यह प्रोजेक्ट बहुत बुरा कोड है और मुझे इसे बहुत आक्रामक और मजाकिया तरीके से रोस्ट करना है।
 
-        Project ka naam: {analysis.get('name')}
-        Description: {analysis.get('description')}
-        Stars: {analysis.get('stars')}
-        Forks: {analysis.get('forks')}
-        Files ki sankhya: {analysis.get('file_count')}
+        प्रोजेक्ट का नाम: {analysis.get('name')}
+        विवरण: {analysis.get('description')}
+        स्टार्स: {analysis.get('stars')}
+        फोर्क्स: {analysis.get('forks')}
+        फाइल की संख्या: {analysis.get('file_count')}
+        कॉम्प्लेक्सिटी: {analysis.get('complexity')}
         
-        Languages: {', '.join(languages) if languages else 'Kuch nahi mila'}
-        Frontend frameworks: {', '.join(frontend_fw) if frontend_fw else 'Kuch nahi mila'}
-        Backend frameworks: {', '.join(backend_fw) if backend_fw else 'Kuch nahi mila'}
-        Database technologies: {', '.join(database_fw) if database_fw else 'Kuch nahi mila'}
+        भाषाएँ: {', '.join(languages) if languages else 'कुछ नहीं मिला'}
+        फ्रंटएंड फ्रेमवर्क: {', '.join(frontend_fw) if frontend_fw else 'कुछ नहीं मिला'}
+        बैकएंड फ्रेमवर्क: {', '.join(backend_fw) if backend_fw else 'कुछ नहीं मिला'}
+        डेटाबेस तकनीक: {', '.join(database_fw) if database_fw else 'कुछ नहीं मिला'}
         
-        Roast ke instructions:
-        1. Sirf Hinglish language ka prayog karein (Hindi + English mix with typical Hinglish slang)
-        2. Short aur powerful hona chahiye (maximum 100-120 words)
-        3. Project ke CONCEPT aur FUNCTIONALITY ka mazaak udaayein - yeh kya banane ki koshish kar rahe hain aur kyun yeh idea bekaar hai
-        4. Project description ke aadhar par imagine karein ki yeh app/tool kya karta hoga, aur uska mazaak udaayein
-        5. Framework choices ke aadhar par kaise yeh project fail hoga ya user experience terrible hoga
-        6. Project ke features (jo description se andaza lagaya ja sakta hai) pe comments karein
-        7. 1-2 specific technical choices mention karein but focus rahe project idea/concept pe
-        8. Analogies aur metaphors ka use karein yeh batane ke liye ki project kitna useless ya bekaar hai
-        9. Authentic Hinglish street slang ka istemal karein - natural lagna chahiye
-        10.Yeh adults ke liye hai jo kathor roast chahte hain - bilkul bhi sankoch na karein. Sabse kharab Hinglish gaaliyaan ka upyog karein.
-
-        NOTE: Project description ke aadhar par uske ACTUAL PURPOSE ka mazaak udaayein, na ki sirf code quality ka. Agar yeh ek tool hai, to batayein kyun yeh tool bekaar hai, agar social app hai to batayein kyun koi ise use nahi karega.
+        कोड में समस्याएँ: {', '.join(code_issues) if code_issues else 'कुछ नहीं मिला'}
+        
+        स्ट्रक्चर में समस्याएँ: {', '.join(analysis.get('structure_issues', []))}
+        स्टाइलिंग में समस्याएँ: {', '.join(analysis.get('styling_issues', []))}
+        
+        रोस्ट के निर्देश:
+        1. केवल हिंदी भाषा का प्रयोग करें (गालियां और बहुत आक्रामक भाषा का प्रयोग करें)
+        2. बहुत लंबा होना चाहिए (20-30 पंक्तियाँ)
+        3. अत्यंत कठोर और आक्रामक होना चाहिए (सबसे बुरी हिंदी गालियों का प्रयोग करें)
+        4. उनके कोडिंग कौशल और तकनीकी विकल्पों का मजाक उड़ाएं
+        5. उनके कोड की खराब गुणवत्ता, फ्रेमवर्क में बुरे विकल्प या संरचना समस्याओं के बारे में विशिष्ट उल्लेख शामिल करें
+        6. ऐसे लिखें जैसे आप उनके कोड की बुराई से बहुत नाराज हैं
+        7. उनके कोड में कम से कम 3 समस्याओं का विशिष्ट उल्लेख करें
+        8. पूरे रोस्ट में हिंदी गालियों का खूब उपयोग करें
+        9. उनके कोड की तुलना कचरे या मल से कई बार करें
+        10. मजेदार परिदृश्य बनाएं कि अगर इस कोड का उपयोग प्रोडक्शन में किया जाता तो कितना बुरा होता
+        11. यह बताने के लिए हिंदी में रूपक और उपमाओं का उपयोग करें कि कोड कितना बुरा है
+        
+        यह वयस्कों के लिए है जो कठोर रोस्ट चाहते हैं - बिल्कुल भी संकोच न करें। सबसे खराब हिंदी गालियों का उपयोग करें।
         """
+        
         # Set up Gemini model parameters - use high temperature for creativity
-        model = genai.GenerativeModel("gemini-pro")
-
+        model = genai.GenerativeModel(
+            model_name="gemini-pro",
+            generation_config={
+                "temperature": 1.0,  # Increased for more creative and extreme output
+                "top_p": 0.98,
+                "top_k": 50,
+                "max_output_tokens": 1200,  # Increased for longer roast
+                "candidate_count": 1,
+            },
+            safety_settings=[
+                {
+                    "category": "HARM_CATEGORY_HARASSMENT",
+                    "threshold": "BLOCK_ONLY_HIGH",
+                },
+                {
+                    "category": "HARM_CATEGORY_HATE_SPEECH",
+                    "threshold": "BLOCK_ONLY_HIGH",
+                },
+                {
+                    "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                    "threshold": "BLOCK_ONLY_HIGH",
+                },
+                {
+                    "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                    "threshold": "BLOCK_ONLY_HIGH",
+                },
+            ]
+        )
         
         # Generate response with retries if needed
         max_attempts = 3
