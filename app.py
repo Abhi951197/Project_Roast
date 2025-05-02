@@ -382,7 +382,7 @@ def generate_roast_from_gemini(analysis):
         
         Roast ke instructions:
         1. Sirf Hinglish language ka prayog karein (Hindi words written in English script with gaaliyaan and bahut aggressive language)
-        2. Bahut lamba hona chahiye (20-30 lines)
+        2. Bahut lamba hona chahiye (200 words)
         3. Atyant kathor aur aggressive hona chahiye (sabse buri Hinglish gaaliyaan)
         4. Unke coding skills aur technical choices ka mazaak udaayein
         5. Unke code ki kharab quality, framework mein bure choices ya structure problems ke baare mein specific mentions include karein
