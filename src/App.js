@@ -24,7 +24,7 @@ function App() {
     setRoastResult(null);
     
     try {
-      const response = await fetch('https://your-api-endpoint.com/api/roast', {
+      const response = await fetch('https://project-roast.onrender.com/api/roast', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
