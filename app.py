@@ -443,7 +443,7 @@ def generate_roast_from_gemini(analysis):
                 time.sleep(2)  # Slightly longer pause after an error
         
         # If all attempts fail, use fallback
-        return print("byebye")
+        return generate_fallback_roast(analysis)
             
     except Exception as e:
         # Log the error and use fallback
