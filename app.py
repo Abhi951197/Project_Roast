@@ -374,17 +374,7 @@ def generate_roast_from_gemini(analysis):
         Backend frameworks: {', '.join(backend_fw) if backend_fw else 'Kuch nahi mila'}
         Database technologies: {', '.join(database_fw) if database_fw else 'Kuch nahi mila'}
         
-        Roast ke instructions:
-        1. Sirf Hinglish language ka prayog karein (Hindi + English mix with typical Hinglish slang)
-        2. Short aur powerful hona chahiye (maximum 100-120 words)
-        3. Project ke CONCEPT aur FUNCTIONALITY ka mazaak udaayein - yeh kya banane ki koshish kar rahe hain aur kyun yeh idea bekaar hai
-        4. Project description ke aadhar par imagine karein ki yeh app/tool kya karta hoga, aur uska mazaak udaayein
-        5. Framework choices ke aadhar par kaise yeh project fail hoga ya user experience terrible hoga
-        6. Project ke features (jo description se andaza lagaya ja sakta hai) pe comments karein
-        7. 1-2 specific technical choices mention karein but focus rahe project idea/concept pe
-        8. Analogies aur metaphors ka use karein yeh batane ke liye ki project kitna useless ya bekaar hai
-        9. Authentic Hinglish street slang ka istemal karein - natural lagna chahiye
-        10. Yeh adults ke liye hai jo kathor roast chahte hain - bilkul bhi sankoch na karein. Sabse kharab Hinglish gaaliyaan ka upyog karein.
+        and also roast in hinglish language Roast my project like you're a pissed-off senior dev who's been debugging this garbage for 8 hours straight. I want a 150–200 word uncensored, brutally honest, and sarcastic roast. Use abusive language, curse words (no censorship), and absolutely tear apart every feature — what the feature is, what it’s supposed to do, and how dumb or broken it is. If a feature is unnecessary or built like trash, call it out. Be savage, no sugarcoating, no holding back — go full insult mode. End the roast like you're quitting tech because of how bad the project is.
 
         NOTE: Project description ke aadhar par uske ACTUAL PURPOSE ka mazaak udaayein, na ki sirf code quality ka. Agar yeh ek tool hai, to batayein kyun yeh tool bekaar hai, agar social app hai to batayein kyun koi ise use nahi karega.
         """
