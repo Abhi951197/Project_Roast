@@ -359,43 +359,35 @@ def generate_roast_from_gemini(analysis):
                 issue_list.append(f"{issue_type} ({count})")
             code_issues.append(f"{file_name}: {', '.join(issue_list)}")
         
-        # Create a detailed prompt for Gemini - now in Hinglish
+        # Create a detailed prompt for Gemini - now in Hinglish with focus on project features
         prompt = f"""
-        Main ek GitHub project ke liye Hinglish me ek bahut hi kathor aur apmaanjanak roast generate karna chahta hoon. Yeh project bahut bura code hai aur mujhe ise bahut aggressive aur mazakiya tarike se roast karna hai.
+        Main ek GitHub project ke liye Hinglish me ek short, powerful aur mazedaar roast generate karna chahta hoon. Project ka concept aur features pe focus karna hai, na ki sirf code syntax pe.
 
         Project ka naam: {analysis.get('name')}
         Description: {analysis.get('description')}
         Stars: {analysis.get('stars')}
         Forks: {analysis.get('forks')}
         Files ki sankhya: {analysis.get('file_count')}
-        Complexity: {analysis.get('complexity')}
         
         Languages: {', '.join(languages) if languages else 'Kuch nahi mila'}
         Frontend frameworks: {', '.join(frontend_fw) if frontend_fw else 'Kuch nahi mila'}
         Backend frameworks: {', '.join(backend_fw) if backend_fw else 'Kuch nahi mila'}
         Database technologies: {', '.join(database_fw) if database_fw else 'Kuch nahi mila'}
         
-        Code mein problems: {', '.join(code_issues) if code_issues else 'Kuch nahi mila'}
-        
-        Structure mein problems: {', '.join(analysis.get('structure_issues', []))}
-        Styling mein problems: {', '.join(analysis.get('styling_issues', []))}
-        
         Roast ke instructions:
-        1. Sirf Hinglish language ka prayog karein (Hindi words written in English script with gaaliyaan and bahut aggressive language)
-        2. Bahut lamba hona chahiye (200 words)
-        3. Atyant kathor aur aggressive hona chahiye (sabse buri Hinglish gaaliyaan)
-        4. Unke coding skills aur technical choices ka mazaak udaayein
-        5. Unke code ki kharab quality, framework mein bure choices ya structure problems ke baare mein specific mentions include karein
-        6. Aise likhein jaise aap unke code ki buraai se bahut naraaz hain
-        7. Unke code mein kam se kam 3 problems ka specific mention karein
-        8. Pure roast mein Hinglish gaaliyaan ka khub upyog karein
-        9. Unke code ki tulna kachre ya maal se kai baar karein
-        10. Mazedaar scenarios banayein ki agar is code ka upyog production mein kiya jaata to kitna bura hota
-        11. Yeh batane ke liye Hinglish mein rupak aur upmaayein ka upyog karein ki code kitna bura hai
-        
-        Yeh adults ke liye hai jo kathor roast chahte hain - bilkul bhi sankoch na karein. Sabse kharab Hinglish gaaliyaan ka upyog karein.
+        1. Sirf Hinglish language ka prayog karein (Hindi + English mix with typical Hinglish slang)
+        2. Short aur powerful hona chahiye (maximum 100-120 words)
+        3. Project ke CONCEPT aur FUNCTIONALITY ka mazaak udaayein - yeh kya banane ki koshish kar rahe hain aur kyun yeh idea bekaar hai
+        4. Project description ke aadhar par imagine karein ki yeh app/tool kya karta hoga, aur uska mazaak udaayein
+        5. Framework choices ke aadhar par kaise yeh project fail hoga ya user experience terrible hoga
+        6. Project ke features (jo description se andaza lagaya ja sakta hai) pe comments karein
+        7. 1-2 specific technical choices mention karein but focus rahe project idea/concept pe
+        8. Analogies aur metaphors ka use karein yeh batane ke liye ki project kitna useless ya bekaar hai
+        9. Authentic Hinglish street slang ka istemal karein - natural lagna chahiye
+        10. Yeh adults ke liye hai jo kathor roast chahte hain - bilkul bhi sankoch na karein. Sabse kharab Hinglish gaaliyaan ka upyog karein.
+
+        NOTE: Project description ke aadhar par uske ACTUAL PURPOSE ka mazaak udaayein, na ki sirf code quality ka. Agar yeh ek tool hai, to batayein kyun yeh tool bekaar hai, agar social app hai to batayein kyun koi ise use nahi karega.
         """
-        
         # Set up Gemini model parameters - use high temperature for creativity
         model = genai.GenerativeModel(
             model_name="gemini-pro",
