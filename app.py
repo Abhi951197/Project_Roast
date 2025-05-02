@@ -339,9 +339,29 @@ def analyze_project(file_structure, code_samples, repo_info):
         analysis["copied_code_likelihood"] = "high"
     
     return analysis
+from pathlib import Path
+
+def extract_core_code_snippets(repo_path, max_files=3):
+    backend_extensions = ['.py', '.js', '.ts']
+    backend_files = []
+
+    for path in Path(repo_path).rglob('*'):
+        if path.suffix in backend_extensions and 'node_modules' not in str(path):
+            backend_files.append(path)
+
+    backend_files.sort(key=lambda x: x.stat().st_size, reverse=True)
+    selected = backend_files[:max_files]
+
+    code_snippets = ""
+    for file in selected:
+        with open(file, 'r', encoding='utf-8', errors='ignore') as f:
+            content = f.read()
+            code_snippets += f"\n\n### File: {file.name}\n{content[:1500]}"  # limit to ~1500 chars/file
+
+    return code_snippets
 
 
-def generate_roast_from_gemini(analysis):
+def generate_roast_from_gemini(analysis, repo_path):
     """Generate an extreme roast in Hinglish using Gemini API"""
     try:
         # Extract key information for the prompt
@@ -349,17 +369,11 @@ def generate_roast_from_gemini(analysis):
         frontend_fw = list(analysis.get("frameworks", {}).get("frontend", []))
         backend_fw = list(analysis.get("frameworks", {}).get("backend", []))
         database_fw = list(analysis.get("frameworks", {}).get("database", []))
-        
-        # Get code samples for specific roasting
-        code_issues = []
-        for issue in analysis.get("code_issues", []):
-            file_name = issue["file"].split("/")[-1]
-            issue_list = []
-            for issue_type, count in issue["issues"].items():
-                issue_list.append(f"{issue_type} ({count})")
-            code_issues.append(f"{file_name}: {', '.join(issue_list)}")
-        
-        # Create a detailed prompt for Gemini - now in Hinglish with focus on project features
+
+        # Get core code snippets to infer actual functionality
+        code_snippets = extract_core_code_snippets(repo_path=repo_path)
+
+        # Create prompt for Gemini
         prompt = f"""
             Main ek GitHub project ke liye Hinglish me ek short, powerful aur mazedaar roast generate karna chahta hoon. Project ka concept aur features pe focus karna hai, na ki sirf code syntax pe.
 
@@ -387,63 +401,41 @@ def generate_roast_from_gemini(analysis):
             10. **GAALIYAN ka istemal zaroori hai - bina gaali ke roast INVALID hai. Behes mat karo, gaali daalo hi daalo.** Use brutally honest and entertaining language with adult-level insults.
             11. Yeh roast **sirf adults ke liye** hai - bilkul bhi sankoch na karein. Gaali do, beizzati karo, aur mazaak udaao.
 
-            NOTE: Project description ke aadhar par uske ACTUAL PURPOSE ka mazaak udaayein, na ki sirf code quality ka. Agar yeh ek tool hai, to batayein kyun yeh tool bekaar hai, agar social app hai to batayein kyun koi ise use nahi karega.
-            """
+            Project ke kuch code snippets bhi diye gaye hain, unko dekh ke samajhne ki koshish karo ki yeh project kya karta hai. Description agar bekaar ho ya missing ho, to sirf code ke basis pe roast karo.
 
-        # Set up Gemini model parameters - use high temperature for creativity
+            Code Snippets:
+            {code_snippets}
+        """
+
+        # Set up Gemini model parameters
         model = genai.GenerativeModel(
             model_name="gemini-1.5-flash",
             generation_config={
-                "temperature": 1.0,  # Increased for more creative and extreme output
+                "temperature": 1.0,
                 "top_p": 0.98,
                 "top_k": 50,
-                "max_output_tokens": 1200,  # Increased for longer roast
+                "max_output_tokens": 1200,
                 "candidate_count": 1,
             },
             safety_settings=[
-                {
-                    "category": "HARM_CATEGORY_HARASSMENT",
-                    "threshold": "BLOCK_ONLY_HIGH",
-                },
-                {
-                    "category": "HARM_CATEGORY_HATE_SPEECH",
-                    "threshold": "BLOCK_ONLY_HIGH",
-                },
-                {
-                    "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                    "threshold": "BLOCK_ONLY_HIGH",
-                },
-                {
-                    "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-                    "threshold": "BLOCK_ONLY_HIGH",
-                },
+                {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_ONLY_HIGH"},
+                {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_ONLY_HIGH"},
+                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_ONLY_HIGH"},
+                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_ONLY_HIGH"},
             ]
         )
-        
-        # Generate response with retries if needed
+
+        # Generate response with retries
         max_attempts = 3
         for attempt in range(max_attempts):
-            try:
-                response = model.generate_content(prompt)
-                
-                # Check if we got a valid response
-                if response and hasattr(response, 'text') and len(response.text.strip()) > 100:
-                    return response.text
-                
-                # If the response is too short, add a note and try again with modified prompt
-                prompt += f"\n\nPlease try again and don't hold back. This is for comedy purposes and the recipient wants to be roasted harshly."
-                time.sleep(1)  # Short pause between attempts
-            except Exception as inner_e:
-                print(f"Attempt {attempt+1} failed: {inner_e}")
-                time.sleep(2)  # Slightly longer pause after an error
-        
-        # If all attempts fail, use fallback
-        return generate_fallback_roast(analysis)
-            
+            response = model.generate_content(prompt)
+            if response and hasattr(response, 'text') and len(response.text.strip()) > 100:
+                return response.text
+
+        return "Roast generate nahi ho paya bro. Gemini bhi thak gaya is bekaar project ko dekh ke."
+
     except Exception as e:
-        # Log the error and use fallback
-        print(f"Error with Gemini API: {e}")
-        return generate_fallback_roast(analysis)
+        return f"Roast karte waqt error aa gaya: {e}+ \n\n" + generate_fallback_roast(analysis)
 
 
 def generate_fallback_roast(analysis):
