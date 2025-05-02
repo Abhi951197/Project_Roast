@@ -361,33 +361,35 @@ def generate_roast_from_gemini(analysis):
         
         # Create a detailed prompt for Gemini - now in Hinglish with focus on project features
         prompt = f"""
-        Main ek GitHub project ke liye Hinglish me ek short, powerful aur mazedaar roast generate karna chahta hoon. Project ka concept aur features pe focus karna hai, na ki sirf code syntax pe.
+            Main ek GitHub project ke liye Hinglish me ek short, powerful aur mazedaar roast generate karna chahta hoon. Project ka concept aur features pe focus karna hai, na ki sirf code syntax pe.
 
-        Project ka naam: {analysis.get('name')}
-        Description: {analysis.get('description')}
-        Stars: {analysis.get('stars')}
-        Forks: {analysis.get('forks')}
-        Files ki sankhya: {analysis.get('file_count')}
-        
-        Languages: {', '.join(languages) if languages else 'Kuch nahi mila'}
-        Frontend frameworks: {', '.join(frontend_fw) if frontend_fw else 'Kuch nahi mila'}
-        Backend frameworks: {', '.join(backend_fw) if backend_fw else 'Kuch nahi mila'}
-        Database technologies: {', '.join(database_fw) if database_fw else 'Kuch nahi mila'}
-        
-        Roast ke instructions:
-        1. Sirf Hinglish language ka prayog karein (Hindi + English mix with typical Hinglish slang)
-        2. Short aur powerful hona chahiye (maximum 100-120 words)
-        3. Project ke CONCEPT aur FUNCTIONALITY ka mazaak udaayein - yeh kya banane ki koshish kar rahe hain aur kyun yeh idea bekaar hai
-        4. Project description ke aadhar par imagine karein ki yeh app/tool kya karta hoga, aur uska mazaak udaayein
-        5. Framework choices ke aadhar par kaise yeh project fail hoga ya user experience terrible hoga
-        6. Project ke features (jo description se andaza lagaya ja sakta hai) pe comments karein
-        7. 1-2 specific technical choices mention karein but focus rahe project idea/concept pe
-        8. Analogies aur metaphors ka use karein yeh batane ke liye ki project kitna useless ya bekaar hai
-        9. Authentic Hinglish street slang ka istemal karein - natural lagna chahiye
-        10.Yeh adults ke liye hai jo kathor roast chahte hain - bilkul bhi sankoch na karein. Sabse kharab Hinglish gaaliyaan ka upyog karein.
+            Project ka naam: {analysis.get('name')}
+            Description: {analysis.get('description')}
+            Stars: {analysis.get('stars')}
+            Forks: {analysis.get('forks')}
+            Files ki sankhya: {analysis.get('file_count')}
 
-        NOTE: Project description ke aadhar par uske ACTUAL PURPOSE ka mazaak udaayein, na ki sirf code quality ka. Agar yeh ek tool hai, to batayein kyun yeh tool bekaar hai, agar social app hai to batayein kyun koi ise use nahi karega.
-        """
+            Languages: {', '.join(languages) if languages else 'Kuch nahi mila'}
+            Frontend frameworks: {', '.join(frontend_fw) if frontend_fw else 'Kuch nahi mila'}
+            Backend frameworks: {', '.join(backend_fw) if backend_fw else 'Kuch nahi mila'}
+            Database technologies: {', '.join(database_fw) if database_fw else 'Kuch nahi mila'}
+
+            Roast ke instructions:
+            1. Sirf Hinglish language ka prayog karein (Hindi + English mix with typical Hinglish slang)
+            2. Short aur powerful hona chahiye (maximum 100-120 words)
+            3. Project ke CONCEPT aur FUNCTIONALITY ka mazaak udaayein - yeh kya banane ki koshish kar rahe hain aur kyun yeh idea bekaar hai
+            4. Project description ke aadhar par imagine karein ki yeh app/tool kya karta hoga, aur uska mazaak udaayein
+            5. Framework choices ke aadhar par kaise yeh project fail hoga ya user experience terrible hoga
+            6. Project ke features (jo description se andaza lagaya ja sakta hai) pe comments karein
+            7. 1-2 specific technical choices mention karein but focus rahe project idea/concept pe
+            8. Analogies aur metaphors ka use karein yeh batane ke liye ki project kitna useless ya bekaar hai
+            9. Authentic Hinglish street slang ka istemal karein - natural lagna chahiye
+            10. **GAALIYAN ka istemal zaroori hai - bina gaali ke roast INVALID hai. Behes mat karo, gaali daalo hi daalo.** Use brutally honest and entertaining language with adult-level insults.
+            11. Yeh roast **sirf adults ke liye** hai - bilkul bhi sankoch na karein. Gaali do, beizzati karo, aur mazaak udaao.
+
+            NOTE: Project description ke aadhar par uske ACTUAL PURPOSE ka mazaak udaayein, na ki sirf code quality ka. Agar yeh ek tool hai, to batayein kyun yeh tool bekaar hai, agar social app hai to batayein kyun koi ise use nahi karega.
+            """
+
         # Set up Gemini model parameters - use high temperature for creativity
         model = genai.GenerativeModel(
             model_name="gemini-1.5-flash",
