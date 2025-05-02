@@ -394,7 +394,7 @@ def generate_roast_from_gemini(analysis):
         
         # Set up Gemini model parameters - use high temperature for creativity
         model = genai.GenerativeModel(
-            model_name="gemini-pro",
+            model_name="gemini-1.5-flash",
             generation_config={
                 "temperature": 0.9,  # High but not maximum for better control
                 "top_p": 0.95,
