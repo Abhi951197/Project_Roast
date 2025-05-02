@@ -389,34 +389,8 @@ def generate_roast_from_gemini(analysis):
         NOTE: Project description ke aadhar par uske ACTUAL PURPOSE ka mazaak udaayein, na ki sirf code quality ka. Agar yeh ek tool hai, to batayein kyun yeh tool bekaar hai, agar social app hai to batayein kyun koi ise use nahi karega.
         """
         # Set up Gemini model parameters - use high temperature for creativity
-        model = genai.GenerativeModel(
-            model_name="gemini-pro",
-            generation_config={
-                "temperature": 1.0,  # Increased for more creative and extreme output
-                "top_p": 0.98,
-                "top_k": 50,
-                "max_output_tokens": 1200,  # Increased for longer roast
-                "candidate_count": 1,
-            },
-            safety_settings=[
-                {
-                    "category": "HARM_CATEGORY_HARASSMENT",
-                    "threshold": "BLOCK_ONLY_HIGH",
-                },
-                {
-                    "category": "HARM_CATEGORY_HATE_SPEECH",
-                    "threshold": "BLOCK_ONLY_HIGH",
-                },
-                {
-                    "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                    "threshold": "BLOCK_ONLY_HIGH",
-                },
-                {
-                    "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-                    "threshold": "BLOCK_ONLY_HIGH",
-                },
-            ]
-        )
+        model = genai.GenerativeModel("gemini-pro")
+
         
         # Generate response with retries if needed
         max_attempts = 3
