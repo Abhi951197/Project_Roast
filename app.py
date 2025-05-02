@@ -9,6 +9,7 @@ import os
 import google.generativeai as genai
 import random
 import time
+from pathlib import Path
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -52,8 +53,9 @@ def roast_project():
         # Analyze the project based on files and code
         analysis = analyze_project(file_structure, code_samples, repo_info)
         
-        # Generate a hardcore roast based on the detailed analysis
-        roast = generate_roast_from_gemini(analysis)
+        # We don't have a local repo_path for GitHub repos, so we'll pass None
+        # and modify our functions to handle this case
+        roast = generate_roast_from_gemini(analysis, None)
         
         return jsonify({
             "repoName": repo_info.get("name", "Unknown"),
@@ -339,9 +341,14 @@ def analyze_project(file_structure, code_samples, repo_info):
         analysis["copied_code_likelihood"] = "high"
     
     return analysis
-from pathlib import Path
+
 
 def extract_core_code_snippets(repo_path, max_files=3):
+    """Extract code snippets from local repo or from already fetched code samples"""
+    # If we don't have a local repo_path (e.g., when analyzing GitHub repos remotely)
+    if repo_path is None:
+        return "No direct access to repository files."
+    
     backend_extensions = ['.py', '.js', '.ts']
     backend_files = []
 
@@ -370,8 +377,10 @@ def generate_roast_from_gemini(analysis, repo_path):
         backend_fw = list(analysis.get("frameworks", {}).get("backend", []))
         database_fw = list(analysis.get("frameworks", {}).get("database", []))
 
-        # Get core code snippets to infer actual functionality
-        code_snippets = extract_core_code_snippets(repo_path=repo_path)
+        # Get code snippets or use a placeholder for remote repos
+        code_snippets = "Remote repository - no direct file access."
+        if repo_path:
+            code_snippets = extract_core_code_snippets(repo_path=repo_path)
 
         # Create prompt for Gemini
         prompt = f"""
