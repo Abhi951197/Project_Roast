@@ -7,6 +7,9 @@
   --light-color: #f7fff7;
   --accent-color: #ff9f1c;
   --error-color: #ff4d4d;
+  --normal-color: #4ecdc4;
+  --moderate-color: #ff9f1c; 
+  --extreme-color: #ff4d4d;
   --font-main: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-code: 'Source Code Pro', monospace;
   --border-radius: 8px;
@@ -100,6 +103,104 @@ body {
   box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.2);
 }
 
+/* Intensity Selector Styles */
+.intensity-selector {
+  margin: 1.5rem 0;
+}
+
+.intensity-selector p {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--dark-color);
+}
+
+.intensity-buttons {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.intensity-button {
+  flex: 1;
+  min-width: 120px;
+  padding: 0.8rem 1rem;
+  border: 2px solid #ddd;
+  border-radius: var(--border-radius);
+  background: white;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: var(--transition);
+  position: relative;
+}
+
+.intensity-button:hover {
+  transform: translateY(-2px);
+}
+
+.intensity-button.normal {
+  color: var(--normal-color);
+}
+
+.intensity-button.moderate {
+  color: var(--moderate-color);
+}
+
+.intensity-button.extreme {
+  color: var(--extreme-color);
+}
+
+.intensity-button.active {
+  border-color: currentColor;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.05);
+}
+
+.intensity-button.normal.active {
+  background-color: rgba(78, 205, 196, 0.1);
+}
+
+.intensity-button.moderate.active {
+  background-color: rgba(255, 159, 28, 0.1);
+}
+
+.intensity-button.extreme.active {
+  background-color: rgba(255, 77, 77, 0.1);
+}
+
+.intensity-tooltip {
+  position: absolute;
+  bottom: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 0.5rem 0.8rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: normal;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: var(--transition);
+  z-index: 10;
+}
+
+.intensity-tooltip:after {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 0 6px 6px 6px;
+  border-style: solid;
+  border-color: transparent transparent rgba(0, 0, 0, 0.8) transparent;
+}
+
+.intensity-button:hover .intensity-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
 .roast-button {
   background-color: var(--primary-color);
   color: white;
@@ -113,6 +214,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-top: 1rem;
 }
 
 .roast-button:hover:not(:disabled) {
@@ -208,12 +310,38 @@ body {
   background-color: #fffaf0;
 }
 
+.roast-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
 .roast-container h3 {
   font-size: 1.2rem;
-  margin-bottom: 1rem;
   color: var(--accent-color);
   display: flex;
   align-items: center;
+}
+
+.intensity-badge {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  color: white;
+}
+
+.intensity-badge.normal {
+  background-color: var(--normal-color);
+}
+
+.intensity-badge.moderate {
+  background-color: var(--moderate-color);
+}
+
+.intensity-badge.extreme {
+  background-color: var(--extreme-color);
 }
 
 .roast-content {
@@ -256,8 +384,21 @@ body {
     margin-right: 0;
   }
   
+  .intensity-buttons {
+    flex-direction: column;
+  }
+  
+  .intensity-button {
+    width: 100%;
+  }
+  
   .roast-button {
     width: 100%;
-    margin-top: 1rem;
+  }
+  
+  .roast-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
   }
 }

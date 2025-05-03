@@ -1,5 +1,3 @@
-// App.js - React Frontend for Project Roast
-
 import React, { useState } from 'react';
 import './App.css';
 import { FaGithub, FaCode, FaStar, FaCodeBranch, FaSpinner } from 'react-icons/fa';
@@ -9,6 +7,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [roastResult, setRoastResult] = useState(null);
+  const [roastIntensity, setRoastIntensity] = useState('normal'); // Default intensity
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -29,9 +28,8 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ repoUrl }),
+        body: JSON.stringify({ repoUrl, intensity: roastIntensity }),
       });
-      
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to roast the project');
@@ -44,6 +42,10 @@ function App() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleIntensityChange = (intensity) => {
+    setRoastIntensity(intensity);
   };
 
   return (
@@ -68,6 +70,41 @@ function App() {
               className="repo-input"
               disabled={isLoading}
             />
+          </div>
+          
+          <div className="intensity-selector">
+            <p>Roast Intensity:</p>
+            <div className="intensity-buttons">
+              <button 
+                type="button"
+                className={`intensity-button normal ${roastIntensity === 'normal' ? 'active' : ''}`}
+                onClick={() => handleIntensityChange('normal')}
+                disabled={isLoading}
+              >
+                Normal
+                <span className="intensity-tooltip">Professional roast, no bad words</span>
+              </button>
+              
+              <button 
+                type="button"
+                className={`intensity-button moderate ${roastIntensity === 'moderate' ? 'active' : ''}`}
+                onClick={() => handleIntensityChange('moderate')}
+                disabled={isLoading}
+              >
+                Moderate
+                <span className="intensity-tooltip">Some mild bad words included</span>
+              </button>
+              
+              <button 
+                type="button"
+                className={`intensity-button extreme ${roastIntensity === 'extreme' ? 'active' : ''}`}
+                onClick={() => handleIntensityChange('extreme')}
+                disabled={isLoading}
+              >
+                Extreme
+                <span className="intensity-tooltip">Heavy use of bad words (2-3 per sentence)</span>
+              </button>
+            </div>
           </div>
           
           <button 
@@ -112,7 +149,12 @@ function App() {
             </div>
             
             <div className="roast-container">
-              <h3>The Roast 🔥</h3>
+              <div className="roast-header">
+                <h3>The Roast 🔥</h3>
+                <span className={`intensity-badge ${roastIntensity}`}>
+                  {roastIntensity.charAt(0).toUpperCase() + roastIntensity.slice(1)} Intensity
+                </span>
+              </div>
               <div className="roast-content">
                 <p>{roastResult.roast}</p>
               </div>
