@@ -39,7 +39,11 @@ def get_github_headers():
 @app.route("/", methods=["GET"])
 def index():
     return render_template("index.html")
-
+    
+@app.route('/health')
+def health():
+    return "Backend zinda hai bc!", 200
+    
 @app.route("/api/test", methods=["GET"])
 def test():
     return jsonify({"status": "ok", "message": "API is working"})
