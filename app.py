@@ -10,8 +10,7 @@ import google.generativeai as genai
 import random
 import time
 from pathlib import Path
-from dotenv import load_dotenv
-load_dotenv()  # loads from .env into environment variables
+  # loads from .env into environment variables
 
 import os
 
