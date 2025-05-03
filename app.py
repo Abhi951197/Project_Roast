@@ -1,6 +1,6 @@
 # app.py - Flask Backend for Project Roast
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 import requests
 import base64
@@ -10,84 +10,180 @@ import google.generativeai as genai
 import random
 import time
 from pathlib import Path
-  # loads from .env into environment variables
-
-import os
+import json
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
 # Configure API keys (in production, use environment variables)
-GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "your_github_token")
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "your_gemini_api_key")
-
+# Using an empty token to handle unauthenticated requests
+# GitHub allows limited access for unauthenticated requests
+GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
+GEMINI_API_KEY = "AIzaSyByrTJm40WL49x37qhIPG7Z_4tZrh9-bSw"
 
 # Initialize Gemini client
 genai.configure(api_key=GEMINI_API_KEY)
 
-# Headers for GitHub API
-headers = {
-    "Authorization": f"token {GITHUB_TOKEN}",
-    "Accept": "application/vnd.github.v3+json"
-}
+# Set headers based on token availability
+def get_github_headers():
+    if GITHUB_TOKEN:
+        return {
+            "Authorization": f"token {GITHUB_TOKEN}",
+            "Accept": "application/vnd.github.v3+json"
+        }
+    else:
+        return {
+            "Accept": "application/vnd.github.v3+json"
+        }
+
+@app.route("/", methods=["GET"])
+def index():
+    return render_template("index.html")
+
+@app.route("/api/test", methods=["GET"])
+def test():
+    return jsonify({"status": "ok", "message": "API is working"})
 
 @app.route("/api/roast", methods=["POST"])
 def roast_project():
-    data = request.json
-    repo_url = data.get("repoUrl")
-    
-    if not repo_url:
-        return jsonify({"error": "No repository URL provided"}), 400
-    
     try:
+        print("Request received:", request.data)
+        data = request.json
+
+        if not data:
+            print("No JSON data received")
+            return jsonify({"error": "No JSON data received"}), 400
+
+        repo_url = data.get("repoUrl")
+        if not repo_url:
+            print("No repository URL provided")
+            return jsonify({"error": "No repository URL provided"}), 400
+
+        intensity = data.get("intensity", "normal")
+
+        valid_intensities = ["normal", "moderate", "extreme"]
+        if intensity not in valid_intensities:
+            intensity = "normal"
+
+        print(f"Processing repository: {repo_url}, intensity: {intensity}")
+
         # Extract owner and repo name from GitHub URL
         match = re.search(r"github\.com/([^/]+)/([^/]+)", repo_url)
         if not match:
             return jsonify({"error": "Invalid GitHub URL"}), 400
-        
+
         owner, repo = match.groups()
-        
-        # Fetch repository details
-        repo_info = fetch_repo_info(owner, repo)
-        file_structure = fetch_file_structure(owner, repo)
-        
-        # Fetch and analyze actual code files (up to 10 main files)
-        code_samples = fetch_code_files(owner, repo, file_structure, max_files=10)
-        
-        # Analyze the project based on files and code
-        analysis = analyze_project(file_structure, code_samples, repo_info)
-        
-        # We don't have a local repo_path for GitHub repos, so we'll pass None
-        # and modify our functions to handle this case
-        roast = generate_roast_from_gemini(analysis, None)
-        
+        print(f"Extracted owner: {owner}, repo: {repo}")
+
+        # Fetch repository details with error handling
+        try:
+            repo_info = fetch_repo_info(owner, repo)
+            print(f"Successfully fetched repo info for {owner}/{repo}")
+        except Exception as e:
+            print(f"Error fetching repo info: {str(e)}")
+            # Return a more detailed error response
+            return jsonify({
+                "error": f"Failed to fetch repository info: {str(e)}",
+                "details": "The repository might be private or doesn't exist. Please check the URL or try with a public repository."
+            }), 404
+            
+        # Continue with the analysis
+        try:
+            file_structure = fetch_file_structure(owner, repo)
+            code_samples = fetch_code_files(owner, repo, file_structure, max_files=10)
+            analysis = analyze_project(file_structure, code_samples, repo_info)
+            roast = generate_roast_from_gemini(analysis, None, intensity)
+        except Exception as e:
+            print(f"Error during analysis: {str(e)}")
+            # Provide a fallback response with basic information
+            return jsonify({
+                "repoName": repo_info.get("name", "Unknown"),
+                "repoOwner": owner,
+                "repoStars": repo_info.get("stargazers_count", 0),
+                "repoForks": repo_info.get("forks_count", 0),
+                "repoDescription": repo_info.get("description", "No description"),
+                "roast": f"Couldn't properly analyze this repository. Error: {str(e)}",
+                "error": str(e)
+            }), 200
+
         return jsonify({
             "repoName": repo_info.get("name", "Unknown"),
             "repoOwner": owner,
             "repoStars": repo_info.get("stargazers_count", 0),
             "repoForks": repo_info.get("forks_count", 0),
             "languages": analysis.get("languages"),
+            "frameworks": analysis.get("frameworks"),
+            "codeIssues": analysis.get("code_issues"),
+            "stylingIssues": analysis.get("styling_issues"),
+            "structureIssues": analysis.get("structure_issues"),
+            "complexity": analysis.get("complexity"),
+            "copiedCodeLikelihood": analysis.get("copied_code_likelihood"),
+            "repoDescription": repo_info.get("description", "No description"),
             "roast": roast
         })
-        
+
     except Exception as e:
+        print(f"Error processing repository: {str(e)}")
         return jsonify({"error": str(e)}), 500
-
-
+    
 def fetch_repo_info(owner, repo):
     """Fetch basic repository information"""
     try:
-        response = requests.get(f"https://api.github.com/repos/{owner}/{repo}", headers=headers)
+        headers = get_github_headers()
+        api_url = f"https://api.github.com/repos/{owner}/{repo}"
+        print(f"Fetching repo info from: {api_url}")
+        
+        response = requests.get(api_url, headers=headers)
+        
+        if response.status_code == 401:
+            raise Exception(f"Unauthorized: GitHub API token is invalid or expired. Using public access mode.")
+        elif response.status_code == 403:
+            # Handle rate limiting
+            reset_time = int(response.headers.get('X-RateLimit-Reset', 0))
+            current_time = int(time.time())
+            wait_time = max(0, reset_time - current_time)
+            
+            if wait_time > 0 and wait_time < 60:  # Only wait if less than a minute
+                time.sleep(wait_time + 1)
+                return fetch_repo_info(owner, repo)  # Try again
+            else:
+                raise Exception(f"Rate limited by GitHub API. Please try again later (reset in {wait_time} seconds).")
+        elif response.status_code == 404:
+            raise Exception(f"Repository {owner}/{repo} not found. It might be private or doesn't exist.")
+            
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
+        # Use a fallback approach for public repositories
+        try:
+            # Try without authentication
+            response = requests.get(f"https://api.github.com/repos/{owner}/{repo}")
+            if response.status_code == 200:
+                return response.json()
+        except:
+            pass
+        
         raise Exception(f"Error fetching repo info: {e}")
 
 
 def fetch_file_content(owner, repo, path):
     """Fetch and decode file content"""
     try:
+        headers = get_github_headers()
         response = requests.get(f"https://api.github.com/repos/{owner}/{repo}/contents/{path}", headers=headers)
+        
+        # Handle rate limiting
+        if response.status_code == 403 and 'X-RateLimit-Remaining' in response.headers and int(response.headers['X-RateLimit-Remaining']) == 0:
+            reset_time = int(response.headers.get('X-RateLimit-Reset', 0))
+            current_time = int(time.time())
+            wait_time = max(0, reset_time - current_time)
+            
+            if wait_time > 0 and wait_time < 60:  # Only wait if less than a minute
+                time.sleep(wait_time + 1)
+                return fetch_file_content(owner, repo, path)  # Try again
+            else:
+                return f"Rate limited by GitHub API for file: {path}"
+                
         response.raise_for_status()
         content = response.json().get("content", "")
         if content:
@@ -102,7 +198,23 @@ def fetch_file_content(owner, repo, path):
 def fetch_file_structure(owner, repo, path=""):
     """Recursively fetch file structure"""
     try:
-        response = requests.get(f"https://api.github.com/repos/{owner}/{repo}/contents/{path}", headers=headers)
+        headers = get_github_headers()
+        api_url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}"
+        response = requests.get(api_url, headers=headers)
+        
+        # Handle rate limiting
+        if response.status_code == 403 and 'X-RateLimit-Remaining' in response.headers and int(response.headers['X-RateLimit-Remaining']) == 0:
+            reset_time = int(response.headers.get('X-RateLimit-Reset', 0))
+            current_time = int(time.time())
+            wait_time = max(0, reset_time - current_time)
+            
+            if wait_time > 0 and wait_time < 60:  # Only wait if less than a minute
+                time.sleep(wait_time + 1)
+                return fetch_file_structure(owner, repo, path)  # Try again
+            else:
+                print(f"Rate limited by GitHub API when fetching directory: {path}")
+                return []  # Return empty list if rate limited
+        
         response.raise_for_status()
         
         files = []
@@ -110,11 +222,15 @@ def fetch_file_structure(owner, repo, path=""):
             if item["type"] == "file":
                 files.append(item["path"])
             elif item["type"] == "dir":
-                files.extend(fetch_file_structure(owner, repo, item["path"]))  # Recursively fetch files inside directories
+                # Skip some common directories that are likely to be large
+                if item["name"] not in ["node_modules", ".git", "venv", "env", "__pycache__"]:
+                    files.extend(fetch_file_structure(owner, repo, item["path"]))
         
         return files
     except requests.exceptions.RequestException as e:
-        raise Exception(f"Error fetching file structure: {e}")
+        print(f"Error fetching file structure at {path}: {str(e)}")
+        # For directories, better to return empty list than to fail completely
+        return []
 
 
 def fetch_code_files(owner, repo, file_structure, max_files=10):
@@ -125,20 +241,40 @@ def fetch_code_files(owner, repo, file_structure, max_files=10):
     # Filter to just code files
     code_file_paths = [f for f in file_structure if any(f.endswith(ext) for ext in code_extensions)]
     
-    # Prioritize main files like app.py, index.js, main.py, etc.
-    main_files = [f for f in code_file_paths if any(main_name in f.lower() for main_name in ['app', 'index', 'main', 'server'])]
-    other_files = [f for f in code_file_paths if f not in main_files]
-    
-    # Fetch content from prioritized files
-    prioritized_files = main_files + other_files
-    for file_path in prioritized_files[:max_files]:  # Limit to max_files
-        content = fetch_file_content(owner, repo, file_path)
-        if content and len(content) > 0:
-            code_files.append({
-                "path": file_path,
-                "content": content,
-                "extension": os.path.splitext(file_path)[1]
-            })
+    # Safety check - if file structure is empty, use a fallback approach
+    if not code_file_paths:
+        print("No code files found in file structure. Using fallback approach.")
+        try:
+            # Try to get some common files directly
+            common_files = ["app.py", "index.js", "main.py", "server.js", "index.html"]
+            for file in common_files:
+                content = fetch_file_content(owner, repo, file)
+                if content and not content.startswith("Error"):
+                    ext = os.path.splitext(file)[1]
+                    code_files.append({
+                        "path": file,
+                        "content": content,
+                        "extension": ext
+                    })
+                    if len(code_files) >= max_files:
+                        break
+        except Exception as e:
+            print(f"Fallback approach also failed: {str(e)}")
+    else:
+        # Prioritize main files like app.py, index.js, main.py, etc.
+        main_files = [f for f in code_file_paths if any(main_name in f.lower() for main_name in ['app', 'index', 'main', 'server'])]
+        other_files = [f for f in code_file_paths if f not in main_files]
+        
+        # Fetch content from prioritized files
+        prioritized_files = main_files + other_files
+        for file_path in prioritized_files[:max_files]:  # Limit to max_files
+            content = fetch_file_content(owner, repo, file_path)
+            if content and len(content) > 0 and not content.startswith("Error"):
+                code_files.append({
+                    "path": file_path,
+                    "content": content,
+                    "extension": os.path.splitext(file_path)[1]
+                })
     
     return code_files
 
@@ -261,6 +397,15 @@ def check_inconsistent_styling(code_files):
     
     return issues
 
+def convert_sets_to_lists(obj):
+    if isinstance(obj, dict):
+        return {k: convert_sets_to_lists(v) for k, v in obj.items()}
+    elif isinstance(obj, set):
+        return list(obj)
+    elif isinstance(obj, list):
+        return [convert_sets_to_lists(i) for i in obj]
+    else:
+        return obj
 
 def analyze_project(file_structure, code_samples, repo_info):
     """Create a detailed analysis of the project for roasting"""
@@ -278,7 +423,8 @@ def analyze_project(file_structure, code_samples, repo_info):
         "styling_issues": [],
         "complexity": "simple",
         "structure_issues": [],
-        "copied_code_likelihood": "low"
+        "copied_code_likelihood": "low",
+        "code_samples": code_samples  # Store code samples for roasting
     }
     
     # Calculate language breakdown
@@ -340,72 +486,152 @@ def analyze_project(file_structure, code_samples, repo_info):
     else:
         analysis["complexity"] = "complex lekin bekar implementation ke saath" # Complex but with terrible implementation
     
-    # Estimate likelihood of code copying based on patterns
-    if any("COPYRIGHT" in f for f in file_structure) or any("LICENSE" in f for f in file_structure):
-        analysis["copied_code_likelihood"] = "high"
+    return convert_sets_to_lists(analysis)
+
+def identify_code_anti_patterns(code_samples):
+    """Identify specific anti-patterns in code for detailed roasting"""
+    anti_patterns = []
     
-    return analysis
+    for file in code_samples:
+        file_anti_patterns = []
+        content = file["content"]
+        path = file["path"]
+        
+        # Check for hardcoded credentials
+        if re.search(r'(password|api_?key|secret|token)\s*=\s*[\'"][^\'"]{5,}[\'"]', content, re.IGNORECASE):
+            file_anti_patterns.append("hardcoded credentials - full security disaster")
+        
+        # Check for excessive nesting
+        if re.search(r'if\s*\([^)]*\)\s*{\s*if\s*\([^)]*\)\s*{\s*if', content):
+            file_anti_patterns.append("triple nested if statements - code maze")
+        
+        # Check for commented out code blocks
+        if re.search(r'(\/\/\s*function|\/\/\s*for\s*\(|\/\/\s*if\s*\(|\/\*\s*function)', content):
+            file_anti_patterns.append("commented-out code blocks - lazy cleanup")
+        
+        # Check for very long functions
+        if re.search(r'function\s+\w+\s*\([^)]*\)\s*{[^}]{500,}}', content):
+            file_anti_patterns.append("functions longer than 500 characters - spaghetti code")
+        
+        # Check for poor variable naming
+        if re.search(r'\b[a-z]{1,2}\b\s*=', content):
+            file_anti_patterns.append("single letter variables - impossible to understand")
+        
+        # Check for repeated console logs
+        console_logs = re.findall(r'console\.log', content)
+        if len(console_logs) > 5:
+            file_anti_patterns.append(f"{len(console_logs)} console.log statements - debugging nightmare")
+        
+        # Check for magic numbers
+        magic_numbers = re.findall(r'[^"\'](\b\d{4,}\b)[^"\']', content)
+        if len(magic_numbers) > 3:
+            file_anti_patterns.append("magic numbers without constants - future maintenance hell")
+        
+        # Check for copy-paste code patterns
+        repeated_lines = set()
+        lines = content.split('\n')
+        for line in lines:
+            line = line.strip()
+            if len(line) > 30:  # Only check substantial lines
+                if line in repeated_lines:
+                    file_anti_patterns.append("copy-pasted code - DRY principle violation")
+                    break
+                repeated_lines.add(line)
+        
+        if file_anti_patterns:
+            anti_patterns.append({
+                "file": path,
+                "issues": file_anti_patterns
+            })
+    
+    return anti_patterns
 
 
-def extract_core_code_snippets(repo_path, max_files=3):
+def extract_core_code_snippets(repo_path, code_samples, max_files=5):
     """Extract code snippets from local repo or from already fetched code samples"""
-    # If we don't have a local repo_path (e.g., when analyzing GitHub repos remotely)
-    if repo_path is None:
-        return "No direct access to repository files."
+    # If using GitHub API data (remote repos)
+    if repo_path is None and code_samples:
+        # Filter backend files from code samples
+        backend_extensions = ['.py', '.js', '.ts', '.jsx', '.tsx', '.php']
+        backend_files = [file for file in code_samples 
+                         if any(file["path"].endswith(ext) for ext in backend_extensions)]
+        
+        # Sort by content length (as proxy for file size)
+        backend_files.sort(key=lambda x: len(x["content"]), reverse=True)
+        
+        # Select top files
+        selected = backend_files[:max_files]
+        
+        code_snippets = ""
+        for file in selected:
+            # Get up to 2000 chars of content
+            content = file["content"][:2000]
+            code_snippets += f"\n\n### File: {file['path']}\n{content}"
+            
+        return code_snippets if code_snippets else "No code files found."
     
-    backend_extensions = ['.py', '.js', '.ts']
-    backend_files = []
+    # If using local repo path
+    elif repo_path:
+        backend_extensions = ['.py', '.js', '.ts', '.jsx', '.tsx', '.php']
+        backend_files = []
 
-    for path in Path(repo_path).rglob('*'):
-        if path.suffix in backend_extensions and 'node_modules' not in str(path):
-            backend_files.append(path)
+        for path in Path(repo_path).rglob('*'):
+            if path.suffix in backend_extensions and 'node_modules' not in str(path):
+                backend_files.append(path)
 
-    backend_files.sort(key=lambda x: x.stat().st_size, reverse=True)
-    selected = backend_files[:max_files]
+        backend_files.sort(key=lambda x: x.stat().st_size, reverse=True)
+        selected = backend_files[:max_files]
 
-    code_snippets = ""
-    for file in selected:
-        with open(file, 'r', encoding='utf-8', errors='ignore') as f:
-            content = f.read()
-            code_snippets += f"\n\n### File: {file.name}\n{content[:1500]}"  # limit to ~1500 chars/file
+        code_snippets = ""
+        for file in selected:
+            with open(file, 'r', encoding='utf-8', errors='ignore') as f:
+                content = f.read()
+                code_snippets += f"\n\n### File: {file.name}\n{content[:2000]}"  # limit to ~2000 chars/file
 
-    return code_snippets
-
+        return code_snippets
+    
+    # If no repo path and no code samples
+    else:
+        return "No direct access to repository files."
 
 def generate_roast_from_gemini(analysis, repo_path, intensity="normal"):
-    """Generate a roast in Hinglish using Gemini API with different intensity levels
-    
-    Parameters:
-    - analysis: Dict with repository analysis data
-    - repo_path: Path to the local repository (or None for remote)
-    - intensity: String indicating roast intensity ("normal", "moderate", or "extreme")
-    """
+    """Generate a roast in Hinglish focusing on actual code in the files"""
     try:
         # Extract key information for the prompt
         languages = [f"{name} ({count} files)" for name, count in analysis.get("languages", [])]
         frontend_fw = list(analysis.get("frameworks", {}).get("frontend", []))
         backend_fw = list(analysis.get("frameworks", {}).get("backend", []))
         database_fw = list(analysis.get("frameworks", {}).get("database", []))
-
-        # Get code snippets or use a placeholder for remote repos
-        code_snippets = "Remote repository - no direct file access."
-        if repo_path:
-            code_snippets = extract_core_code_snippets(repo_path=repo_path)
-
+        
+        # Get code samples from the analysis
+        code_samples = analysis.get("code_samples", [])
+        
+        # Extract code snippets
+        code_snippets = extract_core_code_snippets(repo_path, code_samples)
+        
+        # Identify specific code anti-patterns for detailed roasting
+        anti_patterns = identify_code_anti_patterns(code_samples)
+        
+        # Format anti-patterns for the prompt
+        anti_pattern_text = ""
+        for ap in anti_patterns:
+            file_path = ap["file"]
+            issues = ap["issues"]
+            anti_pattern_text += f"\nFile '{file_path}' has these issues:\n- " + "\n- ".join(issues)
+        
         # Create prompt based on intensity level
         base_prompt = f"""
-            Main ek GitHub project ke liye Hinglish me ek short, powerful aur mazedaar roast generate karna chahta hoon. Project ka concept aur features pe focus karna hai, na ki sirf code syntax pe.
+            Main ek GitHub project ke liye Hinglish me ek short, powerful aur mazedaar roast generate karna chahta hoon. Is baar, main chahta hoon ki roast primarily actual CODE pe focus kare - code ki quality, style, structure, aur implementation. Less focus on project concept, more focus on the actual code.
 
             Project ka naam: {analysis.get('name')}
             Description: {analysis.get('description')}
-            Stars: {analysis.get('stars')}
-            Forks: {analysis.get('forks')}
-            Files ki sankhya: {analysis.get('file_count')}
-
             Languages: {', '.join(languages) if languages else 'Kuch nahi mila'}
             Frontend frameworks: {', '.join(frontend_fw) if frontend_fw else 'Kuch nahi mila'}
             Backend frameworks: {', '.join(backend_fw) if backend_fw else 'Kuch nahi mila'}
             Database technologies: {', '.join(database_fw) if database_fw else 'Kuch nahi mila'}
+            
+            Code Anti-Patterns identified:
+            {anti_pattern_text if anti_pattern_text else "No specific anti-patterns identified"}
         """
 
         # Instructions specific to each intensity level
@@ -413,28 +639,27 @@ def generate_roast_from_gemini(analysis, repo_path, intensity="normal"):
             instructions = """
                 Roast ke instructions:
                 1. Sirf Hinglish language ka prayog karein (Hindi + English mix with typical Hinglish slang)
-                2. Short aur powerful hona chahiye (maximum 100-120 words)
-                3. Project ke CONCEPT aur FUNCTIONALITY ka mazaak udaayein - yeh kya banane ki koshish kar rahe hain aur kyun yeh idea bekaar hai
-                4. Project description ke aadhar par imagine karein ki yeh app/tool kya karta hoga, aur uska mazaak udaayein
-                5. Framework choices ke aadhar par kaise yeh project fail hoga ya user experience terrible hoga
-                6. Project ke features (jo description se andaza lagaya ja sakta hai) pe comments karein
-                7. 1-2 specific technical choices mention karein but focus rahe project idea/concept pe
-                8. Analogies aur metaphors ka use karein yeh batane ke liye ki project kitna useless ya bekaar hai
+                2. Short aur powerful hona chahiye (maximum 100-150 words)
+                3. MOSTLY focus on the ACTUAL CODE QUALITY and IMPLEMENTATION - not just the project concept
+                4. Neeche diye gaye code snippets ko analyze karein aur unke specific problems point out karein
+                5. Bad coding practices, poor variable names, inefficient algorithms, security flaws pe focus karein
+                6. 3-4 SPECIFIC code problems ka mention karein with file references like "app.py mein line X par..."
+                7. Code style, indentation, commenting, function length, etc. pe comments karein
+                8. Analogies aur metaphors ka use karein yeh batane ke liye ki code kitna bekaar hai
                 9. Authentic Hinglish street slang ka istemal karein - natural lagna chahiye
                 10. NO CURSE WORDS OR PROFANITY - professional criticism with humor only
-                11. Yeh roast sab age groups ke liye appropriate hona chahiye
             """
         elif intensity == "moderate":
             instructions = """
                 Roast ke instructions:
                 1. Sirf Hinglish language ka prayog karein (Hindi + English mix with typical Hinglish slang)
-                2. Short aur powerful hona chahiye (maximum 100-120 words)
-                3. Project ke CONCEPT aur FUNCTIONALITY ka mazaak udaayein - yeh kya banane ki koshish kar rahe hain aur kyun yeh idea bekaar hai
-                4. Project description ke aadhar par imagine karein ki yeh app/tool kya karta hoga, aur uska mazaak udaayein
-                5. Framework choices ke aadhar par kaise yeh project fail hoga ya user experience terrible hoga
-                6. Project ke features (jo description se andaza lagaya ja sakta hai) pe comments karein
-                7. 1-2 specific technical choices mention karein but focus rahe project idea/concept pe
-                8. Analogies aur metaphors ka use karein yeh batane ke liye ki project kitna useless ya bekaar hai
+                2. Short aur powerful hona chahiye (maximum 150-200 words)
+                3. MOSTLY focus on the ACTUAL CODE QUALITY and IMPLEMENTATION - not just the project concept
+                4. Neeche diye gaye code snippets ko analyze karein aur unke specific problems point out karein
+                5. Bad coding practices, poor variable names, inefficient algorithms, security flaws pe focus karein
+                6. 3-4 SPECIFIC code problems ka mention karein with file references like "app.py mein line X par..."
+                7. Code style, indentation, commenting, function length, etc. pe comments karein
+                8. Analogies aur metaphors ka use karein yeh batane ke liye ki code kitna bekaar hai
                 9. Authentic Hinglish street slang ka istemal karein - natural lagna chahiye
                 10. Mild curse words allowed - bekar, bakwas, faltu type words with 1-2 stronger words per roast
                 11. Yeh roast adults ke liye hai - thoda sarcastic and harsh hona chahiye
@@ -443,24 +668,27 @@ def generate_roast_from_gemini(analysis, repo_path, intensity="normal"):
             instructions = """
                 Roast ke instructions:
                 1. Sirf Hinglish language ka prayog karein (Hindi + English mix with typical Hinglish slang)
-                2. Short aur powerful hona chahiye (maximum 100-120 words)
-                3. Project ke CONCEPT aur FUNCTIONALITY ka mazaak udaayein - yeh kya banane ki koshish kar rahe hain aur kyun yeh idea bekaar hai
-                4. Project description ke aadhar par imagine karein ki yeh app/tool kya karta hoga, aur uska mazaak udaayein
-                5. Framework choices ke aadhar par kaise yeh project fail hoga ya user experience terrible hoga
-                6. Project ke features (jo description se andaza lagaya ja sakta hai) pe comments karein
-                7. 1-2 specific technical choices mention karein but focus rahe project idea/concept pe
-                8. Analogies aur metaphors ka use karein yeh batane ke liye ki project kitna useless ya bekaar hai
+                2. Medium length powerful roast (maximum 200-250 words)
+                3. MOSTLY focus on the ACTUAL CODE QUALITY and IMPLEMENTATION - not just the project concept
+                4. Neeche diye gaye code snippets ko analyze karein aur unke specific problems point out karein
+                5. Bad coding practices, poor variable names, inefficient algorithms, security flaws pe focus karein
+                6. 4-5 SPECIFIC code problems ka mention karein with file references like "app.py mein line X par..."
+                7. Code style, indentation, commenting, function length, etc. pe comments karein
+                8. Analogies aur metaphors ka use karein yeh batane ke liye ki code kitna bekaar hai
                 9. Authentic Hinglish street slang ka istemal karein - natural lagna chahiye
-                10. **GAALIYAN ka istemal zaroori hai - heavy use karo - har sentence me 2-3 gaali honi chahiye.** Use brutally honest and entertaining language with adult-level insults.
+                10. **GAALIYAN ka istemal zaroori hai - heavy use karo - har sentence me gaali honi chahiye.** Use brutally honest and entertaining language with adult-level insults.
                 11. Yeh roast **sirf adults ke liye** hai - bilkul bhi sankoch na karein. Gaali do, beizzati karo, aur mazaak udaao. Half of the content should consist of curse words.
             """
 
         # Add code snippets to prompt
         full_prompt = base_prompt + instructions + f"""
-            Project ke kuch code snippets bhi diye gaye hain, unko dekh ke samajhne ki koshish karo ki yeh project kya karta hai. Description agar bekaar ho ya missing ho, to sirf code ke basis pe roast karo.
-
+            Neeche diye gaye code snippets ko analyze karein aur inhi ke basis pe roast karein. 
+            Specifically mention file names and problematic code patterns.
+            
             Code Snippets:
             {code_snippets}
+            
+            Remember: Focus on the ACTUAL CODE in these snippets, not just the project concept. Give specific examples from the code.
         """
 
         # Set up Gemini model parameters - adjust temperature based on intensity
@@ -495,17 +723,13 @@ def generate_roast_from_gemini(analysis, repo_path, intensity="normal"):
             if response and hasattr(response, 'text') and len(response.text.strip()) > 100:
                 return response.text
 
-        # Fallback messages based on intensity
-        if intensity == "normal":
-            return "Roast generate nahi ho paya. Sorry for the inconvenience!"
-        elif intensity == "moderate":
-            return "Roast generate nahi ho paya yaar. Lagta hai project itna bakwas hai ki AI ko bhi samajh nahi aaya!"
-        else:
-            return "Roast generate nahi ho paya bro. Gemini bhi thak gaya is bekaar project ko dekh ke."
+        # Fallback messages
+        return generate_fallback_roast(analysis, intensity, code_samples)
 
     except Exception as e:
         # Generate fallback based on intensity
-        return f"Roast karte waqt error aa gaya: {e}+ \n\n" + generate_fallback_roast(analysis, intensity)
+        return f"Roast karte waqt error aa gaya: {e}+ \n\n" + generate_fallback_roast(analysis, intensity, code_samples)
+
 
 
 def generate_fallback_roast(analysis,intensity="normal"):
