@@ -10,6 +10,10 @@ import google.generativeai as genai
 import random
 import time
 from pathlib import Path
+from dotenv import load_dotenv
+load_dotenv()  # loads from .env into environment variables
+
+import os
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -17,6 +21,7 @@ CORS(app)  # Enable CORS for all routes
 # Configure API keys (in production, use environment variables)
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "your_github_token")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "your_gemini_api_key")
+
 
 # Initialize Gemini client
 genai.configure(api_key=GEMINI_API_KEY)
@@ -368,8 +373,14 @@ def extract_core_code_snippets(repo_path, max_files=3):
     return code_snippets
 
 
-def generate_roast_from_gemini(analysis, repo_path):
-    """Generate an extreme roast in Hinglish using Gemini API"""
+def generate_roast_from_gemini(analysis, repo_path, intensity="normal"):
+    """Generate a roast in Hinglish using Gemini API with different intensity levels
+    
+    Parameters:
+    - analysis: Dict with repository analysis data
+    - repo_path: Path to the local repository (or None for remote)
+    - intensity: String indicating roast intensity ("normal", "moderate", or "extreme")
+    """
     try:
         # Extract key information for the prompt
         languages = [f"{name} ({count} files)" for name, count in analysis.get("languages", [])]
@@ -382,8 +393,8 @@ def generate_roast_from_gemini(analysis, repo_path):
         if repo_path:
             code_snippets = extract_core_code_snippets(repo_path=repo_path)
 
-        # Create prompt for Gemini
-        prompt = f"""
+        # Create prompt based on intensity level
+        base_prompt = f"""
             Main ek GitHub project ke liye Hinglish me ek short, powerful aur mazedaar roast generate karna chahta hoon. Project ka concept aur features pe focus karna hai, na ki sirf code syntax pe.
 
             Project ka naam: {analysis.get('name')}
@@ -396,157 +407,216 @@ def generate_roast_from_gemini(analysis, repo_path):
             Frontend frameworks: {', '.join(frontend_fw) if frontend_fw else 'Kuch nahi mila'}
             Backend frameworks: {', '.join(backend_fw) if backend_fw else 'Kuch nahi mila'}
             Database technologies: {', '.join(database_fw) if database_fw else 'Kuch nahi mila'}
+        """
 
-            Roast ke instructions:
-            1. Sirf Hinglish language ka prayog karein (Hindi + English mix with typical Hinglish slang)
-            2. Short aur powerful hona chahiye (maximum 100-120 words)
-            3. Project ke CONCEPT aur FUNCTIONALITY ka mazaak udaayein - yeh kya banane ki koshish kar rahe hain aur kyun yeh idea bekaar hai
-            4. Project description ke aadhar par imagine karein ki yeh app/tool kya karta hoga, aur uska mazaak udaayein
-            5. Framework choices ke aadhar par kaise yeh project fail hoga ya user experience terrible hoga
-            6. Project ke features (jo description se andaza lagaya ja sakta hai) pe comments karein
-            7. 1-2 specific technical choices mention karein but focus rahe project idea/concept pe
-            8. Analogies aur metaphors ka use karein yeh batane ke liye ki project kitna useless ya bekaar hai
-            9. Authentic Hinglish street slang ka istemal karein - natural lagna chahiye
-            10. **GAALIYAN ka istemal zaroori hai - bina gaali ke roast INVALID hai. Behes mat karo, gaali daalo hi daalo.** Use brutally honest and entertaining language with adult-level insults.
-            11. Yeh roast **sirf adults ke liye** hai - bilkul bhi sankoch na karein. Gaali do, beizzati karo, aur mazaak udaao.
+        # Instructions specific to each intensity level
+        if intensity == "normal":
+            instructions = """
+                Roast ke instructions:
+                1. Sirf Hinglish language ka prayog karein (Hindi + English mix with typical Hinglish slang)
+                2. Short aur powerful hona chahiye (maximum 100-120 words)
+                3. Project ke CONCEPT aur FUNCTIONALITY ka mazaak udaayein - yeh kya banane ki koshish kar rahe hain aur kyun yeh idea bekaar hai
+                4. Project description ke aadhar par imagine karein ki yeh app/tool kya karta hoga, aur uska mazaak udaayein
+                5. Framework choices ke aadhar par kaise yeh project fail hoga ya user experience terrible hoga
+                6. Project ke features (jo description se andaza lagaya ja sakta hai) pe comments karein
+                7. 1-2 specific technical choices mention karein but focus rahe project idea/concept pe
+                8. Analogies aur metaphors ka use karein yeh batane ke liye ki project kitna useless ya bekaar hai
+                9. Authentic Hinglish street slang ka istemal karein - natural lagna chahiye
+                10. NO CURSE WORDS OR PROFANITY - professional criticism with humor only
+                11. Yeh roast sab age groups ke liye appropriate hona chahiye
+            """
+        elif intensity == "moderate":
+            instructions = """
+                Roast ke instructions:
+                1. Sirf Hinglish language ka prayog karein (Hindi + English mix with typical Hinglish slang)
+                2. Short aur powerful hona chahiye (maximum 100-120 words)
+                3. Project ke CONCEPT aur FUNCTIONALITY ka mazaak udaayein - yeh kya banane ki koshish kar rahe hain aur kyun yeh idea bekaar hai
+                4. Project description ke aadhar par imagine karein ki yeh app/tool kya karta hoga, aur uska mazaak udaayein
+                5. Framework choices ke aadhar par kaise yeh project fail hoga ya user experience terrible hoga
+                6. Project ke features (jo description se andaza lagaya ja sakta hai) pe comments karein
+                7. 1-2 specific technical choices mention karein but focus rahe project idea/concept pe
+                8. Analogies aur metaphors ka use karein yeh batane ke liye ki project kitna useless ya bekaar hai
+                9. Authentic Hinglish street slang ka istemal karein - natural lagna chahiye
+                10. Mild curse words allowed - bekar, bakwas, faltu type words with 1-2 stronger words per roast
+                11. Yeh roast adults ke liye hai - thoda sarcastic and harsh hona chahiye
+            """
+        else:  # extreme
+            instructions = """
+                Roast ke instructions:
+                1. Sirf Hinglish language ka prayog karein (Hindi + English mix with typical Hinglish slang)
+                2. Short aur powerful hona chahiye (maximum 100-120 words)
+                3. Project ke CONCEPT aur FUNCTIONALITY ka mazaak udaayein - yeh kya banane ki koshish kar rahe hain aur kyun yeh idea bekaar hai
+                4. Project description ke aadhar par imagine karein ki yeh app/tool kya karta hoga, aur uska mazaak udaayein
+                5. Framework choices ke aadhar par kaise yeh project fail hoga ya user experience terrible hoga
+                6. Project ke features (jo description se andaza lagaya ja sakta hai) pe comments karein
+                7. 1-2 specific technical choices mention karein but focus rahe project idea/concept pe
+                8. Analogies aur metaphors ka use karein yeh batane ke liye ki project kitna useless ya bekaar hai
+                9. Authentic Hinglish street slang ka istemal karein - natural lagna chahiye
+                10. **GAALIYAN ka istemal zaroori hai - heavy use karo - har sentence me 2-3 gaali honi chahiye.** Use brutally honest and entertaining language with adult-level insults.
+                11. Yeh roast **sirf adults ke liye** hai - bilkul bhi sankoch na karein. Gaali do, beizzati karo, aur mazaak udaao. Half of the content should consist of curse words.
+            """
 
+        # Add code snippets to prompt
+        full_prompt = base_prompt + instructions + f"""
             Project ke kuch code snippets bhi diye gaye hain, unko dekh ke samajhne ki koshish karo ki yeh project kya karta hai. Description agar bekaar ho ya missing ho, to sirf code ke basis pe roast karo.
 
             Code Snippets:
             {code_snippets}
         """
 
-        # Set up Gemini model parameters
+        # Set up Gemini model parameters - adjust temperature based on intensity
+        temperature = 0.7 if intensity == "normal" else (0.85 if intensity == "moderate" else 1.0)
+        
         model = genai.GenerativeModel(
             model_name="gemini-1.5-flash",
             generation_config={
-                "temperature": 1.0,
+                "temperature": temperature,
                 "top_p": 0.98,
                 "top_k": 50,
                 "max_output_tokens": 1200,
                 "candidate_count": 1,
             },
             safety_settings=[
-                {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_ONLY_HIGH"},
-                {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_ONLY_HIGH"},
-                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_ONLY_HIGH"},
-                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_ONLY_HIGH"},
+                # Adjust safety settings based on intensity
+                {"category": "HARM_CATEGORY_HARASSMENT", 
+                 "threshold": "BLOCK_ONLY_HIGH" if intensity != "normal" else "BLOCK_MEDIUM_AND_ABOVE"},
+                {"category": "HARM_CATEGORY_HATE_SPEECH", 
+                 "threshold": "BLOCK_ONLY_HIGH"},
+                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", 
+                 "threshold": "BLOCK_ONLY_HIGH"},
+                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", 
+                 "threshold": "BLOCK_ONLY_HIGH"},
             ]
         )
 
         # Generate response with retries
         max_attempts = 3
         for attempt in range(max_attempts):
-            response = model.generate_content(prompt)
+            response = model.generate_content(full_prompt)
             if response and hasattr(response, 'text') and len(response.text.strip()) > 100:
                 return response.text
 
-        return "Roast generate nahi ho paya bro. Gemini bhi thak gaya is bekaar project ko dekh ke."
+        # Fallback messages based on intensity
+        if intensity == "normal":
+            return "Roast generate nahi ho paya. Sorry for the inconvenience!"
+        elif intensity == "moderate":
+            return "Roast generate nahi ho paya yaar. Lagta hai project itna bakwas hai ki AI ko bhi samajh nahi aaya!"
+        else:
+            return "Roast generate nahi ho paya bro. Gemini bhi thak gaya is bekaar project ko dekh ke."
 
     except Exception as e:
-        return f"Roast karte waqt error aa gaya: {e}+ \n\n" + generate_fallback_roast(analysis)
+        # Generate fallback based on intensity
+        return f"Roast karte waqt error aa gaya: {e}+ \n\n" + generate_fallback_roast(analysis, intensity)
 
 
-def generate_fallback_roast(analysis):
+def generate_fallback_roast(analysis,intensity="normal"):
     """Generate a fallback hardcore roast in Hinglish if API fails"""
-    insults = [
-        "Tumhara code dekhkar meri aankhen jal gayi hain",
-        "Yeh code nahi, yeh to mere toilet se bhi ganda hai",
-        "Tumhare code se achcha to mera 5 saal ka baccha likh dega",
-        "Ise code kehte ho? Yeh to sirf bakwaas hai",
-        "Tumhara project dekhkar mujhe ulti aa rahi hai",
-        "Tumhara GitHub dekhkar main hans-hanskar lot-pot ho gaya",
-        "Tumhare code ki architecture chaprasi ne design ki hai kya?",
-        "Tum programmer nahi, keyboard par haath maarne wale bandar ho",
-        "Tumhare functions ka naam dekhkar mere kaan se khoon nikal gaya",
-        "Tumhara code chalta kaise hai? Chamatkar hai kya?",
-        "Is project ko banane mein kitni copy-paste ki?",
-        "Tumhara code dekhkar Stack Overflow bhi sharma jayega",
-        "Tumhare variable name dekhkar mera sir chakra gaya"
-    ]
+    project_name = analysis.get('name', 'Unknown Project')
+
+    if intensity == "normal":
+            return f"Lagta hai {project_name} project me itni creativity hai jitni ek blank text file me. Koi na, har kisi ko coding seekhni hai, par thoda aur practice karo."
+    elif intensity == "moderate":
+        return f"Yaar {project_name} project dekh ke lagta hai kisi ne Stack Overflow se copy paste karna hi coding samajh liya hai. Kitna bakwas code likha hai bhai, zara documentation likhna bhi seekh lo."
     
-    # Main language from analysis
-    main_language = analysis.get("languages", [["Unknown", 0]])[0][0] if analysis.get("languages") else "Unknown"
-    
-    # Build a hardcore roast from templates and analysis data
-    roast_parts = []
-    
-    # Introduction
-    roast_parts.append(f"Are {analysis.get('name', 'bewakoof')}, yeh kya haga hai tune? Yeh code hai ya teri zindagi ki tarah barbaadi ka ek aur namoona?")
-    
-    # Language specific insults
-    if "Python" in main_language:
-        roast_parts.append(f"Tere {main_language} ke code ko dekhkar Python ke nirmaata Guido van Rossum khud faansi laga lenge. Itna ganda code to maine kabhi nahi dekha jo tumne {analysis.get('file_count', 0)} files mein failaya hai.")
-    elif "JavaScript" in main_language or "React" in main_language:
-        roast_parts.append(f"Tere {main_language} mein to koi serial killer se zyada gandagi hai. {analysis.get('file_count', 0)} files aur sabhi kachre se bhari hui hain. Tere code ki wajah se Chrome browser aatmahatya kar lega.")
-    elif "Java" in main_language:
-        roast_parts.append(f"Tere {main_language} code ko dekhkar meri gaand fat gayi. Itna verbose aur bakwaas code to narak mein bhi nahi milega. {analysis.get('file_count', 0)} files ka bojh aur sab kuch teri tarah bekaar.")
-    else:
-        roast_parts.append(f"Tere {main_language} code se to kutte ka moot bhi behtar hai. {analysis.get('file_count', 0)} files mein sirf teri bakwaas bhari hai, koi kaam ka code to hai hi nahi.")
-    
-    # Issues in code structure
-    if analysis.get("structure_issues"):
-        issues = ', '.join(analysis.get("structure_issues"))
-        roast_parts.append(f"Tere project ki structure behad gandi hai - {issues}. Tu code likhne layak nahi hai, tu sirf tatti kar sakta hai jise tune code ke naam par GitHub par daal diya hai.")
-    
-    # Styling issues
-    if analysis.get("styling_issues"):
-        issues = ', '.join(analysis.get("styling_issues"))
-        roast_parts.append(f"Teri coding style dekhkar mujhe ulti aa gayi - {issues}. Kya tu coding standards ke baare mein kuch jaanta bhi hai ya bas apni gaand se code nikalta hai?")
-    
-    # Framework choices
-    frontend = list(analysis.get("frameworks", {}).get("frontend", []))
-    backend = list(analysis.get("frameworks", {}).get("backend", []))
-    
-    if frontend:
-        fw = ', '.join(frontend)
-        roast_parts.append(f"Tune {fw} ka istemal kiya hai frontend ke liye? Waah! Teri bakwaas selection dekhkar to frontend developers ki aatma ro rahi hogi. Chutiya kahin ka!")
-    
-    if backend:
-        fw = ', '.join(backend)
-        roast_parts.append(f"Aur backend ke liye {fw}? Madarchod, itni bekaar technique chunne ke liye tujhe sochna pada tha ya tune random tarike se chun liya? Tera server to Hindustan ke sarkari website se bhi dheema chalega!")
-    
-    # Complexity
-    roast_parts.append(f"Aur tere code ki complexity {analysis.get('complexity')}? Behenchod, tune itna jatil aur bekaar code kaise likha? Tu pagal hai kya? Ya fir tu sirf apne aap ko smart dikhana chahta hai, lekin tera code teri aukat dikha raha hai - ekdam ganwar ki tarah!")
-    
-    # Code issues
-    if analysis.get("code_issues"):
-        code_issues = analysis.get("code_issues")[:3]  # Take up to 3 issues
-        issue_descriptions = []
+    elif intensity == "extreme":
+        insults = [
+            "Tumhara code dekhkar meri aankhen jal gayi hain",
+            "Yeh code nahi, yeh to mere toilet se bhi ganda hai",
+            "Tumhare code se achcha to mera 5 saal ka baccha likh dega",
+            "Ise code kehte ho? Yeh to sirf bakwaas hai",
+            "Tumhara project dekhkar mujhe ulti aa rahi hai",
+            "Tumhara GitHub dekhkar main hans-hanskar lot-pot ho gaya",
+            "Tumhare code ki architecture chaprasi ne design ki hai kya?",
+            "Tum programmer nahi, keyboard par haath maarne wale bandar ho",
+            "Tumhare functions ka naam dekhkar mere kaan se khoon nikal gaya",
+            "Tumhara code chalta kaise hai? Chamatkar hai kya?",
+            "Is project ko banane mein kitni copy-paste ki?",
+            "Tumhara code dekhkar Stack Overflow bhi sharma jayega",
+            "Tumhare variable name dekhkar mera sir chakra gaya"
+        ]
         
-        for issue in code_issues:
-            file = issue["file"]
-            problems = list(issue["issues"].keys())[:2]  # Take up to 2 problems per file
-            issue_descriptions.append(f"{file} mein {', '.join(problems)}")
+        # Main language from analysis
+        main_language = analysis.get("languages", [["Unknown", 0]])[0][0] if analysis.get("languages") else "Unknown"
         
-        issues_text = ', '.join(issue_descriptions)
-        roast_parts.append(f"Tere code mein itni problems hain ki mujhe hansi aa rahi hai - {issues_text}. Ye tere code ki galtiyan nahi, tere janam ki galtiyan hain. Tu programmer banne ke layak nahi hai, tu sirf sadak par bheekh maangne ke layak hai.")
-    
-    # Stars and forks
-    stars = analysis.get("stars", 0)
-    forks = analysis.get("forks", 0)
-    
-    if stars < 5:
-        roast_parts.append(f"Tere project ko matra {stars} stars mile hain? Itne to main apni gaand se nikaal dunga! Tera code itna bakwaas hai ki log ise dekhkar bhaag jaate hain.")
-    
-    if forks < 2:
-        roast_parts.append(f"Aur sirf {forks} forks? Madarchod, tere code ko koi chhoona bhi nahi chahta! Kyunki tera code dekhne ke baad logon ka vishwas hi uth gaya hai manav jaati se!")
-    
-    # Production scenarios
-    roast_parts.append("Agar tere is kamine code ko production mein daala gaya, to pura server aag pakad lega. Users tere ghar par patthar maarne aayenge aur tere parivar waale tujhse apna rishta tod lenge. Tu beghar ho jayega aur sadak par sote hue kutte tere muh par moot denge.")
-    
-    # More analogies and metaphors
-    roast_parts.append("Tera code us gobar ke dher ki tarah hai jisme suar lot rahe hon. Ise chhoone se pehle 10 baar haath dhone padenge aur fir bhi gandagi nahi jayegi. Tere functions aise hain jaise kisi anpadh ganwar ne angrezi ke shabd ratte maare hon.")
-    
-    # Random insults from the list
-    random.shuffle(insults)
-    roast_parts.extend(insults[:4])  # Add 4 random insults
-    
-    # Conclusion
-    roast_parts.append("Ant mein, tere code ki gandagi itni zyada hai ki Ganga nadi mein dubki lagakar bhi shuddh nahi hogi. Agar tu sach mein programmer banna chahta hai, to apna laptop bech de aur ja ke gaay chara. Coding tere bas ki baat nahi hai, bhosadike!")
-    
-    # Combine all parts
-    return "\n\n".join(roast_parts)
+        # Build a hardcore roast from templates and analysis data
+        roast_parts = []
+        
+        # Introduction
+        roast_parts.append(f"Are {analysis.get('name', 'bewakoof')}, yeh kya haga hai tune? Yeh code hai ya teri zindagi ki tarah barbaadi ka ek aur namoona?")
+        
+        # Language specific insults
+        if "Python" in main_language:
+            roast_parts.append(f"Tere {main_language} ke code ko dekhkar Python ke nirmaata Guido van Rossum khud faansi laga lenge. Itna ganda code to maine kabhi nahi dekha jo tumne {analysis.get('file_count', 0)} files mein failaya hai.")
+        elif "JavaScript" in main_language or "React" in main_language:
+            roast_parts.append(f"Tere {main_language} mein to koi serial killer se zyada gandagi hai. {analysis.get('file_count', 0)} files aur sabhi kachre se bhari hui hain. Tere code ki wajah se Chrome browser aatmahatya kar lega.")
+        elif "Java" in main_language:
+            roast_parts.append(f"Tere {main_language} code ko dekhkar meri gaand fat gayi. Itna verbose aur bakwaas code to narak mein bhi nahi milega. {analysis.get('file_count', 0)} files ka bojh aur sab kuch teri tarah bekaar.")
+        else:
+            roast_parts.append(f"Tere {main_language} code se to kutte ka moot bhi behtar hai. {analysis.get('file_count', 0)} files mein sirf teri bakwaas bhari hai, koi kaam ka code to hai hi nahi.")
+        
+        # Issues in code structure
+        if analysis.get("structure_issues"):
+            issues = ', '.join(analysis.get("structure_issues"))
+            roast_parts.append(f"Tere project ki structure behad gandi hai - {issues}. Tu code likhne layak nahi hai, tu sirf tatti kar sakta hai jise tune code ke naam par GitHub par daal diya hai.")
+        
+        # Styling issues
+        if analysis.get("styling_issues"):
+            issues = ', '.join(analysis.get("styling_issues"))
+            roast_parts.append(f"Teri coding style dekhkar mujhe ulti aa gayi - {issues}. Kya tu coding standards ke baare mein kuch jaanta bhi hai ya bas apni gaand se code nikalta hai?")
+        
+        # Framework choices
+        frontend = list(analysis.get("frameworks", {}).get("frontend", []))
+        backend = list(analysis.get("frameworks", {}).get("backend", []))
+        
+        if frontend:
+            fw = ', '.join(frontend)
+            roast_parts.append(f"Tune {fw} ka istemal kiya hai frontend ke liye? Waah! Teri bakwaas selection dekhkar to frontend developers ki aatma ro rahi hogi. Chutiya kahin ka!")
+        
+        if backend:
+            fw = ', '.join(backend)
+            roast_parts.append(f"Aur backend ke liye {fw}? Madarchod, itni bekaar technique chunne ke liye tujhe sochna pada tha ya tune random tarike se chun liya? Tera server to Hindustan ke sarkari website se bhi dheema chalega!")
+        
+        # Complexity
+        roast_parts.append(f"Aur tere code ki complexity {analysis.get('complexity')}? Behenchod, tune itna jatil aur bekaar code kaise likha? Tu pagal hai kya? Ya fir tu sirf apne aap ko smart dikhana chahta hai, lekin tera code teri aukat dikha raha hai - ekdam ganwar ki tarah!")
+        
+        # Code issues
+        if analysis.get("code_issues"):
+            code_issues = analysis.get("code_issues")[:3]  # Take up to 3 issues
+            issue_descriptions = []
+            
+            for issue in code_issues:
+                file = issue["file"]
+                problems = list(issue["issues"].keys())[:2]  # Take up to 2 problems per file
+                issue_descriptions.append(f"{file} mein {', '.join(problems)}")
+            
+            issues_text = ', '.join(issue_descriptions)
+            roast_parts.append(f"Tere code mein itni problems hain ki mujhe hansi aa rahi hai - {issues_text}. Ye tere code ki galtiyan nahi, tere janam ki galtiyan hain. Tu programmer banne ke layak nahi hai, tu sirf sadak par bheekh maangne ke layak hai.")
+        
+        # Stars and forks
+        stars = analysis.get("stars", 0)
+        forks = analysis.get("forks", 0)
+        
+        if stars < 5:
+            roast_parts.append(f"Tere project ko matra {stars} stars mile hain? Itne to main apni gaand se nikaal dunga! Tera code itna bakwaas hai ki log ise dekhkar bhaag jaate hain.")
+        
+        if forks < 2:
+            roast_parts.append(f"Aur sirf {forks} forks? Madarchod, tere code ko koi chhoona bhi nahi chahta! Kyunki tera code dekhne ke baad logon ka vishwas hi uth gaya hai manav jaati se!")
+        
+        # Production scenarios
+        roast_parts.append("Agar tere is kamine code ko production mein daala gaya, to pura server aag pakad lega. Users tere ghar par patthar maarne aayenge aur tere parivar waale tujhse apna rishta tod lenge. Tu beghar ho jayega aur sadak par sote hue kutte tere muh par moot denge.")
+        
+        # More analogies and metaphors
+        roast_parts.append("Tera code us gobar ke dher ki tarah hai jisme suar lot rahe hon. Ise chhoone se pehle 10 baar haath dhone padenge aur fir bhi gandagi nahi jayegi. Tere functions aise hain jaise kisi anpadh ganwar ne angrezi ke shabd ratte maare hon.")
+        
+        # Random insults from the list
+        random.shuffle(insults)
+        roast_parts.extend(insults[:4])  # Add 4 random insults
+        
+        # Conclusion
+        roast_parts.append("Ant mein, tere code ki gandagi itni zyada hai ki Ganga nadi mein dubki lagakar bhi shuddh nahi hogi. Agar tu sach mein programmer banna chahta hai, to apna laptop bech de aur ja ke gaay chara. Coding tere bas ki baat nahi hai, bhosadike!")
+        
+        # Combine all parts
+        return "\n\n".join(roast_parts)
 
 
 if __name__ == "__main__":
