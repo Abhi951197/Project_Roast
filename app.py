@@ -676,7 +676,7 @@ def generate_roast_from_gemini(analysis, repo_path, intensity="normal"):
                 7. Code style, indentation, commenting, function length, etc. pe comments karein
                 8. Analogies aur metaphors ka use karein yeh batane ke liye ki code kitna bekaar hai
                 9. Authentic Hinglish street slang ka istemal karein - natural lagna chahiye
-                10. **GAALIYAN ka istemal zaroori hai - heavy use karo - har sentence me gaali honi chahiye.** avoid gaali on mother and madarchod.
+                10. **GAALIYAN ka istemal zaroori hai -  avoid gaali on mother and madarchod, behnchod randi ke bache instead use like bhosdiwale chutiya- har sentence me gaali honi chahiye.**
             """
 
         # Add code snippets to prompt
