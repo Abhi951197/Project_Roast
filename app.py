@@ -648,6 +648,8 @@ def generate_roast_from_gemini(analysis, repo_path, intensity="normal"):
                 8. Analogies aur metaphors ka use karein yeh batane ke liye ki code kitna bekaar hai
                 9. Authentic Hinglish street slang ka istemal karein - natural lagna chahiye
                 10. NO CURSE WORDS OR PROFANITY - professional criticism with humor only
+                11. **Avoid karo text formatting jaise bold/italics – sirf plain output mein likhna.**
+
             """
         elif intensity == "moderate":
             instructions = """
@@ -663,21 +665,32 @@ def generate_roast_from_gemini(analysis, repo_path, intensity="normal"):
                 9. Authentic Hinglish street slang ka istemal karein - natural lagna chahiye
                 10. Mild curse words allowed - bekar, bakwas, faltu type words with 1-2 stronger words per roast
                 11. Yeh roast adults ke liye hai - thoda sarcastic and harsh hona chahiye
+                12. **Avoid karo text formatting jaise bold/italics – sirf plain output mein likhna.**
+
             """
         else:  # extreme
             instructions = """
-                Roast ke instructions:
-                1. Sirf Hinglish language ka prayog karein (Hindi + English mix with typical Hinglish slang)
-                2. Medium length powerful roast (maximum 200-250 words)
-                3. MOSTLY focus on the ACTUAL CODE QUALITY and IMPLEMENTATION - not just the project concept
-                4. Neeche diye gaye code snippets ko analyze karein aur unke specific problems point out karein
-                5. Bad coding practices, poor variable names, inefficient algorithms, security flaws pe focus karein
-                6. 4-5 SPECIFIC code problems ka mention karein with file references like "app.py mein line X par..."
-                7. Code style, indentation, commenting, function length, etc. pe comments karein
-                8. Analogies aur metaphors ka use karein yeh batane ke liye ki code kitna bekaar hai
-                9. Authentic Hinglish street slang ka istemal karein - natural lagna chahiye
-                10. **GAALIYAN ka istemal zaroori hai -  avoid gaali on mother and madarchod, behnchod randi ke bache instead use like bhosdiwale chutiya- har sentence me gaali honi chahiye.**
-            """
+               Roast ke instructions:
+
+                1. Sirf Hinglish language ka use karo (Hindi + English mix, jaise gully ke dost baat karte hain).
+                2. Medium length roast ho (200-250 words max), par feel aani chahiye ki bandi/banda rula diya.
+                3. Focus mostly on CODE QUALITY aur IMPLEMENTATION pe karo – sirf idea ya concept pe mat atko.
+                4. Neeche diye gaye code snippets ko achhe se analyze karo aur 4-5 specific code problems point out karo, file references ke sath jaise "app.py mein line 23 par..."
+                5. Target karo:
+                - Bad coding practices
+                - Bakwas variable names
+                - Inefficient logic
+                - Security loopholes
+                - Code structure and readability
+                6. Indentation, function length, commenting, code reuse – sabko roast karo agar bura hai.
+                7. Use karo solid analogies/metaphors – jaise "ye function aise behave kar raha jaise drunk uncle shaadi mein dance kar raha ho."
+                8. Har paragraph mein 1-2 heavy gaaliyan zaroori hain (but avoid direct maa-behen type). Use karo short forms jaise mc, bc, bho*dike, chutiya – context ke hisaab se natural feel aaye.
+                9. Roast natural lage – jaise real life gully programming review ho raha ho.
+                10. **Avoid karo text formatting jaise bold/italics – sirf plain output mein likhna.**
+                
+        
+
+ """
 
         # Add code snippets to prompt
         full_prompt = base_prompt + instructions + f"""
