@@ -402,3 +402,67 @@ body {
     gap: 0.5rem;
   }
 }
+/* Add these styles to your App.css file */
+
+/* Star Button in Header */
+.star-container {
+  margin-top: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+}
+
+.star-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #24292e;
+  color: white;
+  border: 1px solid #484f58;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.star-button:hover {
+  background-color: #2c3136;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.star-icon {
+  color: #f1e05a;
+  margin-right: 8px;
+  font-size: 16px;
+}
+
+.external-link-icon {
+  margin-left: 8px;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+/* Footer star link */
+.footer-star {
+  margin-top: 15px;
+  font-size: 14px;
+}
+
+.star-link {
+  background: none;
+  border: none;
+  color: #f1e05a;
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: bold;
+  padding: 0;
+  margin: 0;
+}
+
+.star-link:hover {
+  color: #ffcc00;
+}

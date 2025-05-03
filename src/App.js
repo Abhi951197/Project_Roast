@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
-import { FaGithub, FaCode, FaStar, FaCodeBranch, FaSpinner } from 'react-icons/fa';
+import { FaGithub, FaCode, FaStar, FaCodeBranch, FaSpinner, FaExternalLinkAlt } from 'react-icons/fa';
 
 function App() {
   const [repoUrl, setRepoUrl] = useState('');
@@ -8,6 +8,12 @@ function App() {
   const [error, setError] = useState('');
   const [roastResult, setRoastResult] = useState(null);
   const [roastIntensity, setRoastIntensity] = useState('normal'); // Default intensity
+  const projectRepoUrl = 'https://github.com/Abhi951197/Project_Roast';
+
+  // Function to open GitHub repo in a new tab for starring
+  const handleStarRepo = () => {
+    window.open(projectRepoUrl, '_blank');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -56,6 +62,15 @@ function App() {
           <h1>Project Roast</h1>
         </div>
         <p className="tagline">Get your GitHub project roasted in Hinglish!</p>
+
+        {/* GitHub Star Button */}
+        <div className="star-container">
+          <button className="star-button" onClick={handleStarRepo}>
+            <FaStar className="star-icon" />
+            <span>Star this repo</span>
+            <FaExternalLinkAlt className="external-link-icon" />
+          </button>
+        </div>
       </header>
       
       <main className="content">
@@ -165,6 +180,9 @@ function App() {
       
       <footer className="app-footer">
         <p>Created with ❤️ by a developer who loves code roasting</p>
+        <div className="footer-star">
+          <p>If you like this app, please <button className="star-link" onClick={handleStarRepo}>star our repository</button>!</p>
+        </div>
       </footer>
     </div>
   );
