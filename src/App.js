@@ -3,6 +3,16 @@ import './App.css';
 import { FaGithub, FaCode, FaStar, FaCodeBranch, FaSpinner, FaExternalLinkAlt } from 'react-icons/fa';
 
 function App() {
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = "https://static.cloudflareinsights.com/beacon.min.js";
+    script.defer = true;
+    script.setAttribute(
+      "data-cf-beacon",
+      '{"token": "bcdb66af49334ab49a8e454d4bba61ab"}'
+    );
+    document.head.appendChild(script);
+  }, []);
   const [repoUrl, setRepoUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
