@@ -18,8 +18,8 @@ CORS(app)  # Enable CORS for all routes
 # Configure API keys (in production, use environment variables)
 # Using an empty token to handle unauthenticated requests
 # GitHub allows limited access for unauthenticated requests
-GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
-GEMINI_API_KEY = "AIzaSyByrTJm40WL49x37qhIPG7Z_4tZrh9-bSw"
+GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "your_github_token")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "your_gemini_api_key")
 
 # Initialize Gemini client
 genai.configure(api_key=GEMINI_API_KEY)
